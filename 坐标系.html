@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+    <script src="jquery-3.3.1.min.js"></script>
+    <style>
+        #canvasbottom {
+            border: thin solid red;
+        }
+
+        #canvastop {
+            border: thin solid red;
+        }
+
+        .container {
+            position: relative;
+        }
+
+        .container canvas {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        .down {
+            float: left;
+            margin: 40px 10px;
+        }
+    </style>
+
+</head>
+<body>
+    <div class="container">
+            <canvas id="canvasbottom" width="800" height="12000"></canvas>
+            <!--<canvas id="canvas2" width="800" height="12000"></canvas>-->
+            <!--<canvas id="canvas3" width="800" height="12000"></canvas>-->
+            <canvas id="canvastop" width="800" height="12000"></canvas>
+            
+        </div>
+            <!-- <div>X:<span class="x"></span></div>
+            <div>Y:<span class="y"></span></div> -->
+    <script>
+        var canvasbottom;
+        var contextbottom;
+
+
+        var pointdata = [
+            {x: 1, y: 1},
+            {x: 2, y: 2},
+            {x: 10, y: 10},
+            {x: 20, y: 20},
+            {x: 30, y: 30},
+            {x: 40, y: 35},
+            {x: 50, y: 40},
+            {x: 60, y: 60},
+            {x: 70, y: 70},
+            {x: 60, y: 80},
+            {x: 50, y: 100}
+        ];
+
+        canvasbottom = document.getElementById("canvasbottom");
+        contextbottom = canvasbottom.getContext("2d");
+
+
+        var canvastop;
+        var contexttop;
+
+
+        function drawToolTip(txtLoc, x, y) {
+        contexttop.save();
+        var padding = 3;
+        var font = "16px arial";
+        contexttop.font = font;
+        contexttop.textBaseline = 'bottom';
+        contexttop.fillStyle = 'yellow';
+        //绘制ToolTip背景
+        var width = contexttop.measureText(txtLoc).width;
+        var height = parseInt(font, 10);
+//        contexttop.fillRect(x, y - height, width + padding * 2, height + padding * 2);
+        contexttop.fillRect(x, y, width + padding * 2, height + padding * 2);
+
+        //绘制ToolTip文字
+        contexttop.fillStyle = '#000';
+        contexttop.fillText(txtLoc, x + padding, y + height + padding);
+        contexttop.restore();
+    }
+
+        
+        canvastop = document.getElementById("canvastop");
+        contexttop = canvastop.getContext("2d");
+        canvastop.onmousemove=onMouseMove;
+
+
+        var HORIZONTAL_AXIS_MARGIN = 50;
+        //竖直标尺与canvas的距离
+        var VERTICAL_AXIS_MARGIN = 50;
+        //标尺起点
+        var AXIS_ORIGIN = {
+            x: HORIZONTAL_AXIS_MARGIN,
+            y: VERTICAL_AXIS_MARGIN
+        };
+        //坐标的顶部
+        var AXIS_TOP = VERTICAL_AXIS_MARGIN;
+        //坐标的长度
+        var AXIS_RIGHT = canvasbottom.width - HORIZONTAL_AXIS_MARGIN;
+        //小标记的间隔
+        var HORIZONTAL_TICK_SPACING = 10;
+        var VERTICAL_TICK_SPACING = 10;
+        //坐标标记的范围
+        var AXIS_WIDTH = AXIS_RIGHT - AXIS_ORIGIN.x;
+        var AXIS_HEIGHT = canvasbottom.height - AXIS_ORIGIN.y - AXIS_TOP;
+        //纵向标记数值
+        var NUM_VERTICAL_TICKS = AXIS_HEIGHT / VERTICAL_TICK_SPACING;
+        //横向标记数值
+        var NUM_HORIZONTAL_TICKS = AXIS_WIDTH / HORIZONTAL_TICK_SPACING;
+        var TICK_WIDTH = 10;
+        //标牌和坐标轴之间的距离
+        var SPACE_BETWEEN_ABELS_AND_AXIS = 20;
+        function onMouseMove(e) {
+
+            if (preSelCircle != null) {
+                preSelCircle.isSelected = false;
+                preSelCircle = null;
+            }
+
+            // 取得画布上被单击的点
+            var clickX = e.pageX - canvastop.offsetLeft - 8;
+            var clickY = e.pageY - canvastop.offsetTop - 8;
+
+
+
+            contexttop.clearRect(0, 0, canvastop.width, canvastop.height);
+
+
+
+            // 查找被单击的圆圈
+            for (var i = 0; i < pointdata.length; i++) {
+                var x = getCoordX(pointdata[i].x);
+                var y = getCoordY(pointdata[i].y);
+
+
+                var distanceFromCenter = Math.sqrt(Math.pow(x - clickX, 2)
+                    + Math.pow(y - clickY, 2));
+                if (distanceFromCenter <= 4) {
+    //                var circle=[];
+    //                circle.point = {x: x, y: y};
+                    previousSelectedCircle = pointdata[i];
+                    //选择新圆圈
+                    previousSelectedCircle.isSelected = true;
+
+                    contexttop.beginPath(); //增
+                    contexttop.lineWidth = 1.0;
+                    contexttop.setLineDash([25, 0]);
+                    contexttop.fillStyle = Dotcolor;
+                    contexttop.moveTo(x, y);
+                    contexttop.arc(x, y, 6, 0, Math.PI * 2, true);//绘制数据线上的点
+                    contexttop.fill();
+    //              contexttop.stroke();
+                    contexttop.stroke();
+                    contexttop.closePath();
+
+                    //停止搜索
+                    break;
+                }
+            }
+            //更新显示，重绘
+    //        drawviews();
+
+
+
+    //        console.log("clearRect");
+
+            if (clickX >= AXIS_ORIGIN.x &&
+                clickX <= (canvastop.width - AXIS_ORIGIN.x) &&
+                clickY >= AXIS_ORIGIN.y &&
+                clickY <= (canvastop.height - AXIS_ORIGIN.y)) {
+
+                contexttop.beginPath(); //增
+                contexttop.setLineDash([5, 3]);
+                contexttop.lineWidth = 0.5;
+
+                contexttop.moveTo(clickX, AXIS_ORIGIN.y);
+                contexttop.lineTo(clickX, canvastop.height - AXIS_ORIGIN.y);
+                contexttop.stroke(); 
+
+                contexttop.beginPath(); //增
+                contexttop.moveTo(AXIS_ORIGIN.x, clickY);
+                contexttop.lineTo(canvastop.width, clickY);
+                contexttop.stroke();
+                contexttop.setLineDash([25, 0]);
+
+
+
+                contexttop.fillStyle = "black";
+    //            contexttop.textAlign = "center";
+                contexttop.textBaseline = "top";
+                //动态显示纵坐标
+                contexttop.fillText((clickY-AXIS_ORIGIN.y)/10,
+                    AXIS_ORIGIN.x - SPACE_BETWEEN_ABELS_AND_AXIS,
+                    clickY);
+                //动态显示横坐标
+                contexttop.fillText((clickX-AXIS_ORIGIN.x)/10,
+                    clickX,
+                    AXIS_ORIGIN.y-SPACE_BETWEEN_ABELS_AND_AXIS);
+
+
+
+
+            }
+            if (preSelCircle != null) {
+    //            console.log("弹框");
+                drawToolTip("坐标：" + preSelCircle.x + " and " + preSelCircle.y, clickX, clickY);
+            }
+    //        console.timeEnd('drawLineDash testTime');
+        }
+
+
+
+        var Dotcolor = "#333";
+
+        var preSelCircle;
+        var Circle;
+
+        var deltaX;
+        for (var i = 1; i < NUM_VERTICAL_TICKS; i++) {
+        contextbottom.beginPath();
+        if (i % 5 === 0) {
+            deltaX = TICK_WIDTH;
+        } else {
+            deltaX = TICK_WIDTH / 2;
+        }
+            contextbottom.moveTo(AXIS_ORIGIN.x - deltaX,
+            AXIS_ORIGIN.y + i * VERTICAL_TICK_SPACING);
+            contextbottom.lineTo(AXIS_ORIGIN.x + deltaX,
+            AXIS_ORIGIN.y + i * VERTICAL_TICK_SPACING);
+            contextbottom.stroke();
+        }
+        // 绘制水平的小标
+        function drawHorizontalAxisTicks(){
+            var deltaY;
+            for(var i=0;i<NUM_HORIZONTAL_TICKS;i++){
+                contextbottom.beginPath();
+                if(i%5 === 0){
+                    deltaY=TICK_WIDTH;
+                }else{
+                    deltaY=TICK_WIDTH/2;
+                }
+                contextbottom.moveTo(AXIS_ORIGIN.x+i*HORIZONTAL_TICK_SPACING,
+                AXIS_ORIGIN.y-deltaY);
+                contextbottom.lineTo(AXIS_ORIGIN.x+i*HORIZONTAL_TICK_SPACING,
+                AXIS_ORIGIN.y+deltaY);
+                contextbottom.stroke();
+            }
+        }
+        drawHorizontalAxisTicks();
+        function drawVerticalAxisTicks() {
+            var deltaX;
+            for(var i=0;i<NUM_VERTICAL_TICKS;i++){
+                if(i%5 === 0){
+                    deltaX=TICK_WIDTH;
+                }else{
+                    deltaX=TICK_WIDTH/2;
+                }
+                contextbottom.moveTo(AXIS_ORIGIN.x-deltaX,
+                AXIS_ORIGIN.y + i * VERTICAL_TICK_SPACING);
+                contextbottom.lineTo(AXIS_ORIGIN.x+deltaX,
+                AXIS_ORIGIN.y + i * VERTICAL_TICK_SPACING);
+                contextbottom.stroke();
+            }
+        }
+        // drawVerticalAxisTicks();
+        function drawVerticalAxis() {
+            contextbottom.beginPath();
+            contextbottom.moveTo(AXIS_ORIGIN.x,canvasbottom.height-AXIS_ORIGIN.x);
+            contextbottom.lineTo(AXIS_ORIGIN.x,AXIS_TOP);
+            contextbottom.stroke();
+        }
+        // drawVerticalAxis();
+        function drawHorizontalAxis() {
+            contextbottom.beginPath();
+            contextbottom.moveTo(AXIS_ORIGIN.x,AXIS_ORIGIN.y);
+            contextbottom.lineTo(AXIS_RIGHT,AXIS_ORIGIN.y);
+            contextbottom.stroke();
+        }
+        // drawHorizontalAxis();
+        //      //绘制标注
+
+        function drawAxisLabels() {
+            contextbottom.fillStyle = "blue";
+            drawHorizontalAxisLabels();
+            drawVerticalAxisLabels();
+        }
+        // drawAxisLabels();
+    // drawAxisLabels();
+    function drawAxis() {
+        contextbottom.save();
+        contextbottom.lineWidth = 1.0;
+        contextbottom.fillStyle = "rgba(100, 140, 230, 0.8)";
+        contextbottom.strokeStyle = "navy";
+        drawHorizontalAxis();
+        drawVerticalAxis();
+        contextbottom.lineWidth = 0.5;
+        contextbottom.strokeStyle = "navy";
+        contextbottom.strokeStyle = "darkred";
+        drawVerticalAxisTicks();
+        drawHorizontalAxisTicks();
+        contextbottom.restore();
+    }
+    drawAxis();
+    function drawVerticalAxisLabels() {
+        contextbottom.textAlign = "center";
+        contextbottom.textBaseline = "top";
+        for (var i = 0; i <= NUM_HORIZONTAL_TICKS; i++) {
+            if (i % 5 === 0) {
+                contextbottom.fillText(i,
+                    AXIS_ORIGIN.x + i * HORIZONTAL_TICK_SPACING,
+                    AXIS_ORIGIN.y - SPACE_BETWEEN_ABELS_AND_AXIS);
+            }
+        }
+    }
+    drawVerticalAxisLabels();
+    
+    function drawHorizontalAxisLabels(){
+        contextbottom.textAlige="center";
+        contextbottom.textBaseline="top";
+        for(i=0;i<NUM_VERTICAL_TICKS;i++){
+            if(i % 5 === 0){
+                contextbottom.fillText(i,
+                AXIS_ORIGIN.x-SPACE_BETWEEN_ABELS_AND_AXIS,
+                AXIS_ORIGIN.y+i*HORIZONTAL_TICK_SPACING);
+            }
+        }
+    }
+    drawHorizontalAxisLabels();
+    // function drawGrid(color, stepx, stepy) {
+    //     contextbottom.save();
+    //     contextbottom.strokeStyle = color;
+    //     contextbottom.fillStyle = '#ffffff';
+    //     contextbottom.lineWidth = 0.5;
+    //     contextbottom.fillRect(0, 0, contextbottom.canvas.width, contextbottom.canvas.height);
+    //     for (var i = stepx + 0.5; i < contextbottom.canvas.width; i += stepx) {
+    //         contextbottom.beginPath();
+    //         contextbottom.moveTo(i, 0);
+    //         contextbottom.lineTo(i, contextbottom.canvas.height);
+    //         contextbottom.stroke();
+    //     }
+    //     for (var i = stepy + 0.5; i < contextbottom.canvas.height; i += stepy) {
+    //         contextbottom.beginPath();
+    //         contextbottom.moveTo(0, i);
+    //         contextbottom.lineTo(contextbottom.canvas.width, i);
+    //         contextbottom.stroke();
+    //     }
+    //     contextbottom.restore();
+    // }
+    function getCoordX(x){
+        return x*10+AXIS_ORIGIN.x;
+    }
+    function getCoordY(y){
+        return y*10+AXIS_ORIGIN.y;
+    }
+    </script>
+    
+</body>
+</html>
